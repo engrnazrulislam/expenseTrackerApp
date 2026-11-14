@@ -1,6 +1,12 @@
 from fastapi import FastAPI
+import model
+from database import engine
+
+# Create the database tables
+model.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
 
 @app.get('/')
 def read_main():
