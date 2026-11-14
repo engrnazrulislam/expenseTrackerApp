@@ -1,12 +1,14 @@
 from fastapi import FastAPI
 import model
 from database import engine
+from router import auth
 
 # Create the database tables
 model.Base.metadata.create_all(bind=engine)
-
 app = FastAPI()
 
+# Include the authentication routes
+app.include_router(auth.router)
 
 @app.get('/')
 def read_main():
