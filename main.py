@@ -10,7 +10,7 @@ app = FastAPI()
 
 @app.get('/')
 def read_main():
-    return {"message": "Hello, World!"}
+    return {"message": "Welcome to the FastAPI application!"}
 
 
 @app.get("/about")
