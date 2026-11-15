@@ -6,10 +6,14 @@ from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 from typing import Annotated, Optional
 from database import SessionLocal
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
+from jose import jwt, JWTError
+from datetime import timedelta, datetime, timezone
 
 bcrypt_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
-
+OAuth2_bearer = OAuth2PasswordBearer(tokenUrl='login')
+SECRET_KEY = "f5aa3f803072b62117bd40efd00db090c0a29247a39ef2b99c7cf486c339ec02"
+ALGORITHM = "HS256"
 router = APIRouter()
 
 class Create_Users(BaseModel):
@@ -29,11 +33,32 @@ db_dependency = Annotated[Session, Depends(get_db)]
 # Authentication User Registration Endpoint
 def authenticate_user(username, password, db):
     user = db.query(User).filter(User.username == username).first()
+    print(user)
     if not user:
         return False
     if bcrypt_context.verify(password, user.hashed_password):
-        return True
+        return user
     return False
+
+# Access Token Creation Function
+def create_access_token(username: str, user_id: int, expires_delta: timedelta):
+    encode={"sub": username, "id": user_id}
+    expire=datetime.now(timezone.utc)+expires_delta
+    encode.update({"exp": expire})
+    return jwt.encode(encode, SECRET_KEY, algorithm=ALGORITHM)
+
+
+# Get Current User Function
+def get_current_user(token: Annotated[str, Depends(OAuth2_bearer)], db):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username = payload.get("sub")
+        user_id = payload.get("id")
+        if username is None or user_id is None:
+            raise HTTPException(status_code=401, detail="User not found")
+        return {"username": username, "id": user_id}
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
 
 
 @router.post("/auth/register")
@@ -59,7 +84,8 @@ def register_user(db: db_dependency,new_user: Create_Users):
 @router.post("/auth/login")
 def login_user(db: db_dependency, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
     user = authenticate_user(form_data.username, form_data.password, db)
-    if user is True:
-        return JSONResponse(status_code=200, content={"message": "Login successful"})
     if user is False:
         raise HTTPException(status_code=401, detail="Invalid username or password")
+    token = create_access_token(user.username, user.id, timedelta(minutes=30))
+    return JSONResponse(status_code=200, content={"access_token": token, "token_type": "bearer"})
+    
