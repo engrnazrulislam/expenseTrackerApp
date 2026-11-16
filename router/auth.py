@@ -11,7 +11,7 @@ from jose import jwt, JWTError
 from datetime import timedelta, datetime, timezone
 
 bcrypt_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
-OAuth2_bearer = OAuth2PasswordBearer(tokenUrl='login')
+OAuth2_bearer = OAuth2PasswordBearer(tokenUrl='/auth/login')
 SECRET_KEY = "f5aa3f803072b62117bd40efd00db090c0a29247a39ef2b99c7cf486c339ec02"
 ALGORITHM = "HS256"
 router = APIRouter()
@@ -49,7 +49,7 @@ def create_access_token(username: str, user_id: int, expires_delta: timedelta):
 
 
 # Get Current User Function
-def get_current_user(token: Annotated[str, Depends(OAuth2_bearer)], db):
+def get_current_user(token: Annotated[str, Depends(OAuth2_bearer)]):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username = payload.get("sub")
@@ -59,8 +59,7 @@ def get_current_user(token: Annotated[str, Depends(OAuth2_bearer)], db):
         return {"username": username, "id": user_id}
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
-
-
+    
 @router.post("/auth/register")
 def register_user(db: db_dependency,new_user: Create_Users):
     # Check if the username or email already exists in the database
@@ -88,4 +87,3 @@ def login_user(db: db_dependency, form_data: Annotated[OAuth2PasswordRequestForm
         raise HTTPException(status_code=401, detail="Invalid username or password")
     token = create_access_token(user.username, user.id, timedelta(minutes=30))
     return JSONResponse(status_code=200, content={"access_token": token, "token_type": "bearer"})
-    
