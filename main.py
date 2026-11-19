@@ -2,6 +2,7 @@ from fastapi import FastAPI
 import model
 from database import engine
 from router import auth
+from transaction import expenseTracker
 from fastapi.responses import JSONResponse
 from fastapi import Depends, HTTPException
 from typing import Annotated
@@ -11,14 +12,15 @@ from model import User
 from router.auth import bcrypt_context
 from typing import Optional, Annotated
 from sqlalchemy.orm import Session
-
+from fastapi.testclient import TestClient
 
 # Create the database tables
 model.Base.metadata.create_all(bind=engine)
 app = FastAPI()
-
 # Include the authentication routes
 app.include_router(auth.router)
+app.include_router(expenseTracker.transaction_router)
+client = TestClient(app)
 
 db_dependency = Annotated[Session, Depends(get_db)]
 user_dependency = Annotated[dict, Depends(get_current_user)]
