@@ -78,7 +78,7 @@ def register_user(db: db_dependency,new_user: Create_Users):
     )
     db.add(user_model)
     db.commit()
-    return JSONResponse(status_code=201, content={"message": "User created successfully"})
+    return JSONResponse(status_code=201, content={"message": "User created successfully", "username": new_user.username, "email": new_user.email})
 
 @router.post("/auth/login")
 def login_user(db: db_dependency, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
